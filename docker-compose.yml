@@ -16,5 +16,22 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build: .
+    container_name: crypto_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Dentro da rede do compose o banco é acessado pelo nome do serviço (postgres).
+      DATABASE_URL: postgres://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cryptowallet}?sslmode=disable
+      PORT: "8080"
+      PRICE_CURRENCY: ${PRICE_CURRENCY:-usd}
+      COINGECKO_API_URL: ${COINGECKO_API_URL:-https://api.coingecko.com/api/v3}
+      COINGECKO_API_KEY: ${COINGECKO_API_KEY:-}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    restart: unless-stopped
+
 volumes:
   postgres_data:

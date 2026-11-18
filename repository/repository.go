@@ -13,5 +13,8 @@ var ErrNaoEncontrado = errors.New("ativo nao encontrado")
 type AssetRepository interface {
 	Criar(ctx context.Context, asset *models.CryptoAsset) error
 	Listar(ctx context.Context) ([]models.CryptoAsset, error)
+	Buscar(ctx context.Context, id int) (models.CryptoAsset, error)
+	Atualizar(ctx context.Context, asset models.CryptoAsset) error
+	Remover(ctx context.Context, id int) error
 	TotalInvestido(ctx context.Context) (float64, error)
 }

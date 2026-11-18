@@ -24,6 +24,9 @@ func ConfigurarRotas(assets *controllers.AssetHandler) http.Handler {
 		router.Post("/", assets.CadastrarAtivo)
 		router.Get("/", assets.ListarAtivos)
 		router.Get("/total", assets.CalcularTotal)
+		router.Get("/{id}", assets.BuscarAtivo)
+		router.Put("/{id}", assets.AtualizarAtivo)
+		router.Delete("/{id}", assets.RemoverAtivo)
 	})
 
 	return r

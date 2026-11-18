@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 // PostgresRepository implementa AssetRepository usando PostgreSQL.
@@ -78,8 +79,8 @@ func (r *PostgresRepository) Remover(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *PostgresRepository) TotalInvestido(ctx context.Context) (float64, error) {
-	var total float64
+func (r *PostgresRepository) TotalInvestido(ctx context.Context) (decimal.Decimal, error) {
+	var total decimal.Decimal
 	err := r.pool.QueryRow(ctx, `SELECT COALESCE(SUM(quantity * price), 0) FROM crypto_assets`).Scan(&total)
 	return total, err
 }

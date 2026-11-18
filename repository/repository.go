@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto-tracker/models"
 	"errors"
+
+	"github.com/shopspring/decimal"
 )
 
 // ErrNaoEncontrado é retornado quando o ativo pedido não existe.
@@ -16,5 +18,5 @@ type AssetRepository interface {
 	Buscar(ctx context.Context, id int) (models.CryptoAsset, error)
 	Atualizar(ctx context.Context, asset models.CryptoAsset) error
 	Remover(ctx context.Context, id int) error
-	TotalInvestido(ctx context.Context) (float64, error)
+	TotalInvestido(ctx context.Context) (decimal.Decimal, error)
 }

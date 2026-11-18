@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/shopspring/decimal"
 )
 
 // AssetHandler agrupa os handlers HTTP da carteira.
@@ -138,5 +139,5 @@ func (h *AssetHandler) CalcularTotal(w http.ResponseWriter, r *http.Request) {
 		escreverErro(w, http.StatusInternalServerError, "Erro ao calcular total")
 		return
 	}
-	escreverJSON(w, http.StatusOK, map[string]float64{"total_invested": total})
+	escreverJSON(w, http.StatusOK, map[string]decimal.Decimal{"total_invested": total})
 }

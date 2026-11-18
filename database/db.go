@@ -24,16 +24,19 @@ func ConectarBanco() {
 
 	err = DB.Ping(context.Background())
 	if err != nil {
-		fmt.Printf("Erro ao pingar o banco de dados: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Erro ao pingar o banco de dados: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Println("Conexão com o PostgreSQL do Docker feita com sucesso!")
 
-	CriarTabela()
+	if err := CriarTabela(); err != nil {
+		fmt.Fprintf(os.Stderr, "Erro ao criar tabela: %v\n", err)
+		os.Exit(1)
+	}
 }
 
-func CriarTabela() {
+func CriarTabela() error {
 	query := `
 	CREATE TABLE IF NOT EXISTS crypto_assets (
 		id SERIAL PRIMARY KEY,
@@ -42,10 +45,9 @@ func CriarTabela() {
 		price NUMERIC NOT NULL
 	);`
 
-	_, err := DB.Exec(context.Background(), query)
-	if err != nil {
-		fmt.Printf("Erro ao criar tabela: %v\n", err)
-		return
+	if _, err := DB.Exec(context.Background(), query); err != nil {
+		return err
 	}
 	fmt.Println("Tabela 'crypto_assets' verificada/criada com sucesso!")
+	return nil
 }

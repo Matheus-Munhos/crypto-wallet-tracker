@@ -3,7 +3,7 @@ package main
 import (
 	"crypto-tracker/database"
 	"crypto-tracker/routes"
-	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -12,8 +12,9 @@ func main() {
 	database.ConectarBanco()
 	roteador := routes.ConfigurarRotas()
 
-	fmt.Println("Servidor da Carteira Crypto rodando na porta :8080...")
+	log.Println("Servidor da Carteira Crypto rodando na porta :8080...")
 
-	http.ListenAndServe(":8080", roteador)
-
+	if err := http.ListenAndServe(":8080", roteador); err != nil {
+		log.Fatalf("erro ao iniciar o servidor: %v", err)
+	}
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"crypto-tracker/config"
+	"crypto-tracker/controllers"
 	"crypto-tracker/database"
+	"crypto-tracker/repository"
 	"crypto-tracker/routes"
 	"errors"
 	"log"
@@ -24,14 +26,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := database.ConectarBanco(ctx, cfg.DatabaseURL); err != nil {
+	pool, err := database.Conectar(ctx, cfg.DatabaseURL)
+	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.DB.Close()
+	defer pool.Close()
+	log.Println("Conexao com o PostgreSQL feita com sucesso!")
+
+	assetHandler := controllers.NovoAssetHandler(repository.NovoPostgresRepository(pool))
 
 	servidor := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.ConfigurarRotas(),
+		Handler:           routes.ConfigurarRotas(assetHandler),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

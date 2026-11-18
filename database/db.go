@@ -3,40 +3,35 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var DB *pgxpool.Pool
-
-// ConectarBanco abre o pool de conexões, verifica a conexão e garante que a tabela exista.
-func ConectarBanco(ctx context.Context, connString string) error {
+// Conectar abre o pool de conexões, verifica a conexão e aplica as migrações.
+func Conectar(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
-		return fmt.Errorf("nao foi possivel conectar ao banco: %w", err)
+		return nil, fmt.Errorf("nao foi possivel conectar ao banco: %w", err)
 	}
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := pool.Ping(pingCtx); err != nil {
 		pool.Close()
-		return fmt.Errorf("erro ao pingar o banco de dados: %w", err)
+		return nil, fmt.Errorf("erro ao pingar o banco de dados: %w", err)
 	}
 
-	DB = pool
-	log.Println("Conexao com o PostgreSQL feita com sucesso!")
-
-	if err := CriarTabela(ctx); err != nil {
+	if err := Migrar(ctx, pool); err != nil {
 		pool.Close()
-		return fmt.Errorf("erro ao criar tabela: %w", err)
+		return nil, fmt.Errorf("erro ao criar tabela: %w", err)
 	}
-	return nil
+	return pool, nil
 }
 
-func CriarTabela(ctx context.Context) error {
-	query := `
+// Migrar garante que a tabela de ativos exista.
+func Migrar(ctx context.Context, pool *pgxpool.Pool) error {
+	const query = `
 	CREATE TABLE IF NOT EXISTS crypto_assets (
 		id SERIAL PRIMARY KEY,
 		symbol VARCHAR(10) NOT NULL,
@@ -44,9 +39,6 @@ func CriarTabela(ctx context.Context) error {
 		price NUMERIC NOT NULL
 	);`
 
-	if _, err := DB.Exec(ctx, query); err != nil {
-		return err
-	}
-	log.Println("Tabela 'crypto_assets' verificada/criada com sucesso!")
-	return nil
+	_, err := pool.Exec(ctx, query)
+	return err
 }

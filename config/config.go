@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto-tracker/pricing"
 	"errors"
 	"os"
 
@@ -9,8 +10,11 @@ import (
 
 // Config reúne as configurações da aplicação lidas do ambiente.
 type Config struct {
-	DatabaseURL string
-	Port        string
+	DatabaseURL     string
+	Port            string
+	PriceCurrency   string
+	CoinGeckoURL    string
+	CoinGeckoAPIKey string
 }
 
 // Carregar lê as variáveis de ambiente (e o arquivo .env, se existir).
@@ -19,8 +23,11 @@ func Carregar() (Config, error) {
 	_ = godotenv.Load()
 
 	cfg := Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Port:        valorOuPadrao("PORT", "8080"),
+		DatabaseURL:     os.Getenv("DATABASE_URL"),
+		Port:            valorOuPadrao("PORT", "8080"),
+		PriceCurrency:   valorOuPadrao("PRICE_CURRENCY", "usd"),
+		CoinGeckoURL:    valorOuPadrao("COINGECKO_API_URL", pricing.URLPadraoCoinGecko),
+		CoinGeckoAPIKey: os.Getenv("COINGECKO_API_KEY"),
 	}
 
 	if cfg.DatabaseURL == "" {

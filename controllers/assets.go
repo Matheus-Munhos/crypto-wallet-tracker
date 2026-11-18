@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto-tracker/models"
+	"crypto-tracker/pricing"
 	"crypto-tracker/repository"
 	"errors"
 	"log"
@@ -14,11 +15,12 @@ import (
 
 // AssetHandler agrupa os handlers HTTP da carteira.
 type AssetHandler struct {
-	repo repository.AssetRepository
+	repo   repository.AssetRepository
+	precos pricing.Provider
 }
 
-func NovoAssetHandler(repo repository.AssetRepository) *AssetHandler {
-	return &AssetHandler{repo: repo}
+func NovoAssetHandler(repo repository.AssetRepository, precos pricing.Provider) *AssetHandler {
+	return &AssetHandler{repo: repo, precos: precos}
 }
 
 // CadastrarAtivo trata POST /wallet.
@@ -140,4 +142,35 @@ func (h *AssetHandler) CalcularTotal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	escreverJSON(w, http.StatusOK, map[string]decimal.Decimal{"total_invested": total})
+}
+
+// AvaliarCarteira trata GET /wallet/valuation: compara o valor investido com a cotação atual.
+func (h *AssetHandler) AvaliarCarteira(w http.ResponseWriter, r *http.Request) {
+	assets, err := h.repo.Listar(r.Context())
+	if err != nil {
+		log.Printf("erro ao listar ativos: %v", err)
+		escreverErro(w, http.StatusInternalServerError, "Erro ao listar ativos")
+		return
+	}
+
+	precos, err := h.precos.Precos(r.Context(), simbolosUnicos(assets))
+	if err != nil {
+		log.Printf("erro ao buscar cotacoes: %v", err)
+		escreverErro(w, http.StatusBadGateway, "Nao foi possivel obter as cotacoes atuais")
+		return
+	}
+
+	escreverJSON(w, http.StatusOK, models.CalcularAvaliacao(assets, precos, h.precos.Moeda()))
+}
+
+func simbolosUnicos(assets []models.CryptoAsset) []string {
+	vistos := map[string]bool{}
+	simbolos := []string{}
+	for _, a := range assets {
+		if !vistos[a.Symbol] {
+			vistos[a.Symbol] = true
+			simbolos = append(simbolos, a.Symbol)
+		}
+	}
+	return simbolos
 }

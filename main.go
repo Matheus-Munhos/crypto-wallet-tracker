@@ -5,6 +5,7 @@ import (
 	"crypto-tracker/config"
 	"crypto-tracker/controllers"
 	"crypto-tracker/database"
+	"crypto-tracker/pricing"
 	"crypto-tracker/repository"
 	"crypto-tracker/routes"
 	"errors"
@@ -33,7 +34,10 @@ func main() {
 	defer pool.Close()
 	log.Println("Conexao com o PostgreSQL feita com sucesso!")
 
-	assetHandler := controllers.NovoAssetHandler(repository.NovoPostgresRepository(pool))
+	assetHandler := controllers.NovoAssetHandler(
+		repository.NovoPostgresRepository(pool),
+		pricing.NovoCoinGecko(cfg.CoinGeckoURL, cfg.CoinGeckoAPIKey, cfg.PriceCurrency),
+	)
 
 	servidor := &http.Server{
 		Addr:              ":" + cfg.Port,

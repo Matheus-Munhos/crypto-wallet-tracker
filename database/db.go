@@ -3,40 +3,39 @@ package database
 import (
 	"context"
 	"fmt"
-	"os"
+	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var DB *pgxpool.Pool
 
-func ConectarBanco() {
-
-	connString := "postgres://admin:secret123@localhost:5432/cryptowallet"
-
-	var err error
-
-	DB, err = pgxpool.New(context.Background(), connString)
+// ConectarBanco abre o pool de conexões, verifica a conexão e garante que a tabela exista.
+func ConectarBanco(ctx context.Context, connString string) error {
+	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Não foi possível conectar ao banco: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("nao foi possivel conectar ao banco: %w", err)
 	}
 
-	err = DB.Ping(context.Background())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao pingar o banco de dados: %v\n", err)
-		os.Exit(1)
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := pool.Ping(pingCtx); err != nil {
+		pool.Close()
+		return fmt.Errorf("erro ao pingar o banco de dados: %w", err)
 	}
 
-	fmt.Println("Conexão com o PostgreSQL do Docker feita com sucesso!")
+	DB = pool
+	log.Println("Conexao com o PostgreSQL feita com sucesso!")
 
-	if err := CriarTabela(); err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao criar tabela: %v\n", err)
-		os.Exit(1)
+	if err := CriarTabela(ctx); err != nil {
+		pool.Close()
+		return fmt.Errorf("erro ao criar tabela: %w", err)
 	}
+	return nil
 }
 
-func CriarTabela() error {
+func CriarTabela(ctx context.Context) error {
 	query := `
 	CREATE TABLE IF NOT EXISTS crypto_assets (
 		id SERIAL PRIMARY KEY,
@@ -45,9 +44,9 @@ func CriarTabela() error {
 		price NUMERIC NOT NULL
 	);`
 
-	if _, err := DB.Exec(context.Background(), query); err != nil {
+	if _, err := DB.Exec(ctx, query); err != nil {
 		return err
 	}
-	fmt.Println("Tabela 'crypto_assets' verificada/criada com sucesso!")
+	log.Println("Tabela 'crypto_assets' verificada/criada com sucesso!")
 	return nil
 }

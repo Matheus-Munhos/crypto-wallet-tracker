@@ -1,20 +1,62 @@
 package main
 
 import (
+	"context"
+	"crypto-tracker/config"
 	"crypto-tracker/database"
 	"crypto-tracker/routes"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
+	cfg, err := config.Carregar()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	database.ConectarBanco()
-	roteador := routes.ConfigurarRotas()
+	// ctx é cancelado quando o processo recebe Ctrl+C ou SIGTERM.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	log.Println("Servidor da Carteira Crypto rodando na porta :8080...")
+	if err := database.ConectarBanco(ctx, cfg.DatabaseURL); err != nil {
+		log.Fatal(err)
+	}
+	defer database.DB.Close()
 
-	if err := http.ListenAndServe(":8080", roteador); err != nil {
-		log.Fatalf("erro ao iniciar o servidor: %v", err)
+	servidor := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           routes.ConfigurarRotas(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	erros := make(chan error, 1)
+	go func() {
+		log.Printf("Servidor da Carteira Crypto rodando na porta :%s...", cfg.Port)
+		if err := servidor.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			erros <- err
+		}
+	}()
+
+	select {
+	case err := <-erros:
+		log.Printf("erro ao iniciar o servidor: %v", err)
+		return
+	case <-ctx.Done():
+	}
+
+	log.Println("Encerrando o servidor...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := servidor.Shutdown(shutdownCtx); err != nil {
+		log.Printf("erro ao encerrar o servidor: %v", err)
 	}
 }

@@ -1,0 +1,18 @@
+# Environment
+.env
+
+# Binaries
+/bin/
+*.exe
+crypto-tracker
+
+# Test / coverage
+*.test
+*.out
+coverage.html
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

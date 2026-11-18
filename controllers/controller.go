@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"crypto-tracker/database"
 	"encoding/json"
 	"log"
@@ -64,7 +63,7 @@ func CadastrarAtivo(w http.ResponseWriter, r *http.Request) {
 		RETURNING id;
 	`
 
-	err := database.DB.QueryRow(context.Background(), query, asset.Symbol, asset.Quantity, asset.Price).Scan(&asset.ID)
+	err := database.DB.QueryRow(r.Context(), query, asset.Symbol, asset.Quantity, asset.Price).Scan(&asset.ID)
 	if err != nil {
 		log.Printf("erro ao salvar ativo: %v", err)
 		escreverErro(w, http.StatusInternalServerError, "Erro ao salvar no banco de dados")
@@ -75,7 +74,7 @@ func CadastrarAtivo(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListarArquivos(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query(context.Background(), "SELECT id, symbol, quantity, price FROM crypto_assets ORDER BY id")
+	rows, err := database.DB.Query(r.Context(), "SELECT id, symbol, quantity, price FROM crypto_assets ORDER BY id")
 	if err != nil {
 		log.Printf("erro ao listar ativos: %v", err)
 		escreverErro(w, http.StatusInternalServerError, "Erro ao listar ativos")
@@ -106,7 +105,7 @@ func CalcularTotal(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT COALESCE(SUM(quantity * price), 0) FROM crypto_assets;`
 
 	var totalInvestido float64
-	if err := database.DB.QueryRow(context.Background(), query).Scan(&totalInvestido); err != nil {
+	if err := database.DB.QueryRow(r.Context(), query).Scan(&totalInvestido); err != nil {
 		log.Printf("erro ao calcular total: %v", err)
 		escreverErro(w, http.StatusInternalServerError, "Erro ao calcular total")
 		return
